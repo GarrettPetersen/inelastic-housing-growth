@@ -276,8 +276,14 @@ const ModelModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
@@ -560,8 +566,8 @@ function App() {
                   <h4 className="font-semibold text-gray-800 mb-1">Key Dynamics</h4>
                   <ul className="list-disc pl-4 space-y-1">
                     <li><strong>Inequality Amplification:</strong> While income inequality is fixed, housing scarcity amplifies <em>wealth</em> inequality. Owners enjoy levered returns from price appreciation, while renters get zero asset exposure.</li>
-                    <li><strong>The Patience Trap (Beta):</strong> Higher patience ($\beta$) paradoxically drives prices higher. If people value their old age more, they are willing to "starve" when young to secure a house, fueling the price bubble.</li>
-                    <li><strong>Productivity Paradox:</strong> Higher Tech Growth ($g_A$) doesn't always solve affordability. If supply is fixed, richer people simply bid up the same houses, causing prices to rise in lockstep with (or faster than) income.</li>
+                    <li><strong>The Patience Trap (Beta):</strong> Higher patience (β) paradoxically drives prices higher. If people value their old age more, they are willing to "starve" when young to secure a house, fueling the price bubble.</li>
+                    <li><strong>Productivity Paradox:</strong> Higher Tech Growth (<i>g<sub>A</sub></i>) doesn't solve housing affordability. If supply is fixed, richer people simply bid up the same houses, causing prices to rise in lockstep with (or faster than) income.</li>
                   </ul>
                   <p className="text-xs text-gray-400 mt-4 italic">
                     *Note: This is a stylized OLG model focusing on partial equilibrium. It abstracts away capital production, elastic supply responses, and bequests to isolate the pure effect of scarcity on asset pricing.
