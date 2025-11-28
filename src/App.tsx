@@ -11,8 +11,8 @@ const DEFAULT_PARAMS: ModelParams = {
   inequality: 0.4, // Log-income SD
   beta: 0.3, // Discount factor per generation (less speculative)
   initialTech: 2500000, // ~$2.5M lifetime -> ~$50k/yr
-  initialPop: 10000,
-  initialHousing: 10000
+  initialPop: 1000,
+  initialHousing: 1000
 };
 
 const Slider = ({
@@ -354,7 +354,7 @@ function App() {
                 label="Initial Pop (N0)"
                 value={params.initialPop}
                 onChange={(v) => updateParam('initialPop', v)}
-                min={1000} max={50000} step={1000}
+                min={100} max={5000} step={100}
                 tooltip="Starting population size at t=0."
               />
             </div>
@@ -413,7 +413,7 @@ function App() {
                 label="Initial Housing (H0)"
                 value={params.initialHousing}
                 onChange={(v) => updateParam('initialHousing', v)}
-                min={1000} max={50000} step={1000}
+                min={100} max={5000} step={10}
                 tooltip="Starting number of houses at t=0."
               />
             </div>
@@ -468,11 +468,32 @@ function App() {
                     effectively transferring wealth from the working young to the asset-rich old.
                     The young are forced to spend a larger fraction of their income on housing, reducing their non-housing consumption and utility.
                   </p>
+                  <p className="mt-2">
+                    <strong>The "Transitional Generation" Windfall:</strong> The first generation to buy just before scarcity bites gets a unique, one-time massive gain.
+                    They buy at "construction cost" prices (plentiful supply) and sell at "scarcity prices" (auction dynamics).
+                    Subsequent generations buy high and sell high, earning a normal (or slightly elevated) return, but the initial jump in wealth creates a persistent intergenerational rift.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Key Dynamics</h4>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li><strong>Inequality Amplification:</strong> While income inequality is fixed, housing scarcity amplifies <em>wealth</em> inequality. Owners enjoy levered returns from price appreciation, while renters get zero asset exposure.</li>
+                    <li><strong>The Patience Trap (Beta):</strong> Higher patience ($\beta$) paradoxically drives prices higher. If people value their old age more, they are willing to "starve" when young to secure a house, fueling the price bubble.</li>
+                    <li><strong>Productivity Paradox:</strong> Higher Tech Growth ($g_A$) doesn't always solve affordability. If supply is fixed, richer people simply bid up the same houses, causing prices to rise in lockstep with (or faster than) income.</li>
+                  </ul>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <footer className="text-center text-gray-500 text-sm mt-12 pb-4">
+          <p>
+            Created by <a href="https://twitter.com/GarrettPetersen" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@GarrettPetersen</a>.
+            Also try <a href="https://connecdoku.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Connecdoku!</a>
+          </p>
+        </footer>
       </main>
     </div>
   );

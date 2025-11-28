@@ -90,7 +90,7 @@ function probit(p: number): number {
 }
 
 const SIMULATION_STEPS = 10; // Look ahead 10 generations
-const AGENTS_COUNT = 10000; // Number of agents to simulate distribution
+const AGENTS_COUNT = 1000; // Number of agents to simulate distribution
 const ALPHA = 1; // Utility value of living in a house
 
 export function simulate(params: ModelParams): GenerationResult[] {
