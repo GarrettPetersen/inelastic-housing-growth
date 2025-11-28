@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { simulate } from './model';
 import type { ModelParams, GenerationResult } from './model';
-import { Users, Home, TrendingUp, Activity, DollarSign, RotateCcw, Info } from 'lucide-react';
+import { Users, Home, TrendingUp, Activity, DollarSign, RotateCcw, Info, BookOpen, X } from 'lucide-react';
 import { ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import 'katex/dist/katex.min.css';
+import katex from 'katex';
 
 const DEFAULT_PARAMS: ModelParams = {
   popGrowthRate: 0.25, // ~25% per generation
@@ -259,8 +261,76 @@ const ResultCard = ({ result, globalMaxIncome, globalMaxCount }: { result: Gener
   );
 };
 
+const MathEquation = ({ tex }: { tex: string }) => {
+  const html = useMemo(() => {
+    return katex.renderToString(tex, {
+      throwOnError: false,
+      displayMode: true
+    });
+  }, [tex]);
+
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
+const ModelModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="p-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Model Specification</h2>
+
+          <div className="prose prose-sm max-w-none text-gray-800">
+            <p>The simulation implements a stylized Overlapping Generations (OLG) model with inelastic housing supply.</p>
+
+            <h3 className="text-lg font-semibold mt-6 mb-2">1. Demographics & Technology</h3>
+            <p>Time is discrete <i>t</i> = 0, 1, ... Agents live for two periods: Young and Old. Population grows at rate <i>g<sub>N</sub></i> and technology (productivity) at rate <i>g<sub>A</sub></i>.</p>
+            <MathEquation tex="N_t = N_0 (1 + g_N)^t" />
+            <MathEquation tex="A_t = A_0 (1 + g_A)^t" />
+            <p>Young agents draw idiosyncratic productivity <i>a<sub>i</sub></i> from a log-normal distribution:</p>
+            <MathEquation tex="\ln(a_i) \sim \mathcal{N}(0, \sigma^2)" />
+            <p>Income for young agent <i>i</i> at time <i>t</i> is <i>y<sub>i,t</sub></i> = <i>A<sub>t</sub> a<sub>i</sub></i>.</p>
+
+            <h3 className="text-lg font-semibold mt-6 mb-2">2. Housing Supply</h3>
+            <p>Housing stock <i>H<sub>t</sub></i> is durable and grows at a constrained rate <i>g<sub>H</sub></i>:</p>
+            <MathEquation tex="H_t = H_0 (1 + g_H)^t" />
+            <p>Supply is perfectly inelastic within period <i>t</i>. All housing units are identical (quality differences are captured in consumption <i>c</i>).</p>
+            <p>Ownership is binary and strictly owner-occupied (no landlords). Households can own either 0 or 1 unit:</p>
+            <MathEquation tex="h \in \{0, 1\}" />
+
+            <h3 className="text-lg font-semibold mt-6 mb-2">3. Utility Maximization</h3>
+            <p>Agents choose consumption <i>c<sub>y</sub></i>, <i>c<sub>o</sub></i> and housing <i>h</i> to maximize lifetime utility:</p>
+            <MathEquation tex="U_i = \ln(c_{y}) + \beta \ln(c_{o}) + \alpha h" />
+            <p>Subject to the budget constraint. Output is durable: goods not consumed when young are stored as savings <i>s</i> at 0% interest (no capital production).</p>
+            <p>If renting (<i>h</i>=0), wealth is simply stored:</p>
+            <MathEquation tex="\begin{aligned} c_y &= y_{i,t} - s \\ c_o &= s \end{aligned}" />
+            <p>If owning (<i>h</i>=1), they purchase at price <i>P<sub>t</sub></i> and sell at <i>P<sub>t+1</sub></i>:</p>
+            <MathEquation tex="\begin{aligned} c_y &= y_{i,t} - P_t - s \\ c_o &= s + P_{t+1} \end{aligned}" />
+
+            <h3 className="text-lg font-semibold mt-6 mb-2">4. Market Clearing</h3>
+            <p>Housing is allocated via a second-price auction. Each agent calculates their reservation price (Willingness-To-Pay, <i>WTP<sub>i,t</sub></i>) such that:</p>
+            <MathEquation tex="U(h=1, P_t=WTP_{i,t}) = U(h=0)" />
+            <p>The market price <i>P<sub>t</sub></i> is determined by the marginal buyer at rank <i>H<sub>t</sub></i>:</p>
+            <MathEquation tex="P_t = \text{sorted}(WTP)_{H_t}" />
+            <p>This implies that if <i>H<sub>t</sub></i> &lt; <i>N<sub>t</sub></i>, the price is set by the scarcity of land relative to the demand of the marginal entrant.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [params, setParams] = useState<ModelParams>(DEFAULT_PARAMS);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Auto-fix state for hot-reloading dev cycles (migration)
   if (params.initialTech < 1000) {
@@ -312,17 +382,28 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       <header className="bg-white border-b border-gray-200 py-6 px-8 mb-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-            <img src="/house-dollar.svg" alt="Logo" className="w-10 h-10" />
-            Inelastic Housing Growth Model
-          </h1>
-          <p className="mt-2 text-gray-600 max-w-3xl">
-            An interactive OLG model simulating how housing supply constraints affect generational wealth and affordability.
-            Explore how population, technology, and inequality impact Boomers (t=0), Millennials (t=1), and Gen Alpha (t=2).
-          </p>
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+              <img src="/house-dollar.svg" alt="Logo" className="w-10 h-10" />
+              Inelastic Housing Growth Model
+            </h1>
+            <p className="mt-2 text-gray-600 max-w-3xl">
+              An interactive OLG model simulating how housing supply constraints affect generational wealth and affordability.
+              Explore how population, technology, and inequality impact Boomers (t=0), Millennials (t=1), and Gen Alpha (t=2).
+            </p>
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+          >
+            <BookOpen className="w-4 h-4" />
+            Full Specification
+          </button>
         </div>
       </header>
+
+      <ModelModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -482,6 +563,9 @@ function App() {
                     <li><strong>The Patience Trap (Beta):</strong> Higher patience ($\beta$) paradoxically drives prices higher. If people value their old age more, they are willing to "starve" when young to secure a house, fueling the price bubble.</li>
                     <li><strong>Productivity Paradox:</strong> Higher Tech Growth ($g_A$) doesn't always solve affordability. If supply is fixed, richer people simply bid up the same houses, causing prices to rise in lockstep with (or faster than) income.</li>
                   </ul>
+                  <p className="text-xs text-gray-400 mt-4 italic">
+                    *Note: This is a stylized OLG model focusing on partial equilibrium. It abstracts away capital production, elastic supply responses, and bequests to isolate the pure effect of scarcity on asset pricing.
+                  </p>
                 </div>
               </div>
             </div>
