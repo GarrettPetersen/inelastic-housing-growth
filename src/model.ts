@@ -32,6 +32,11 @@ export interface GenerationResult {
   housePriceNext: number;
   population: number;
   housingStock: number;
+  
+  // New field for chart: Full income distribution data (for histogram/density plot)
+  // We'll store a simplified histogram or just raw data points if efficient.
+  // Storing raw points for 1000 agents is fine for client-side.
+  incomeDistribution: { income: number; wtp: number; buys: boolean }[];
 }
 
 // Standard Normal Inverse CDF (Probit function)
@@ -85,7 +90,7 @@ function probit(p: number): number {
 }
 
 const SIMULATION_STEPS = 10; // Look ahead 10 generations
-const AGENTS_COUNT = 1000; // Number of agents to simulate distribution
+const AGENTS_COUNT = 10000; // Number of agents to simulate distribution
 const ALPHA = 1; // Utility value of living in a house
 
 export function simulate(params: ModelParams): GenerationResult[] {
@@ -278,6 +283,7 @@ export function simulate(params: ModelParams): GenerationResult[] {
       let incomeSum = 0;
       const agentUtilities: number[] = [];
       const agentIncomes: number[] = [];
+      const agentDataForChart: { income: number; wtp: number; buys: boolean }[] = [];
       
       // Better approach for stats: Re-calculate WTPs, sort, identify owners, then compute stats.
       const agents = [];
@@ -330,6 +336,12 @@ export function simulate(params: ModelParams): GenerationResult[] {
               totalUtilityRenters += u;
           }
           
+          agentDataForChart.push({
+              income: agent.y,
+              wtp: agent.wtp,
+              buys: isOwner
+          });
+          
           totalUtility += u;
           agentUtilities.push(u);
           totalConsYoung += c_young;
@@ -369,6 +381,7 @@ export function simulate(params: ModelParams): GenerationResult[] {
           housePriceNext: P_next,
           population: N_t,
           housingStock: H_t,
+          incomeDistribution: agentDataForChart
       });
   }
   
