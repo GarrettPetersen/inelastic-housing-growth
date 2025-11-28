@@ -32,7 +32,6 @@ export interface GenerationResult {
   housePriceNext: number;
   population: number;
   housingStock: number;
-  incomeMean: number;
 }
 
 // Standard Normal Inverse CDF (Probit function)
