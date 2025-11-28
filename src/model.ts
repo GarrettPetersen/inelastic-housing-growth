@@ -20,9 +20,16 @@ export interface GenerationResult {
   utilityP25: number;
   utilityMedian: number;
   utilityP75: number;
+  
+  incomeMean: number;
+  incomeP25: number;
+  incomeMedian: number;
+  incomeP75: number;
+  
   avgConsumptionYoung: number;
   avgConsumptionOld: number;
   housePrice: number;
+  housePriceNext: number;
   population: number;
   housingStock: number;
   incomeMean: number;
@@ -271,12 +278,14 @@ export function simulate(params: ModelParams): GenerationResult[] {
       let ownerCount = 0;
       let incomeSum = 0;
       const agentUtilities: number[] = [];
+      const agentIncomes: number[] = [];
       
       // Better approach for stats: Re-calculate WTPs, sort, identify owners, then compute stats.
       const agents = [];
       for(let i=0; i<AGENTS_COUNT; i++) {
           const y = A_t * productivities[i];
           incomeSum += y;
+          agentIncomes.push(y);
           
           // Calculate WTP again (could be optimized to not redo)
           let low = 0;
@@ -332,6 +341,8 @@ export function simulate(params: ModelParams): GenerationResult[] {
       // Note: agents array is sorted by WTP, not necessarily by utility, 
       // though they are correlated. We need to sort the utilities explicitly.
       agentUtilities.sort((a, b) => a - b);
+      agentIncomes.sort((a, b) => a - b);
+
       const p25Index = Math.floor(0.25 * AGENTS_COUNT);
       const p50Index = Math.floor(0.50 * AGENTS_COUNT);
       const p75Index = Math.floor(0.75 * AGENTS_COUNT);
@@ -347,12 +358,18 @@ export function simulate(params: ModelParams): GenerationResult[] {
           utilityP25: agentUtilities[p25Index],
           utilityMedian: agentUtilities[p50Index],
           utilityP75: agentUtilities[p75Index],
+          
+          incomeMean: incomeSum / AGENTS_COUNT,
+          incomeP25: agentIncomes[p25Index],
+          incomeMedian: agentIncomes[p50Index],
+          incomeP75: agentIncomes[p75Index],
+
           avgConsumptionYoung: totalConsYoung / AGENTS_COUNT,
           avgConsumptionOld: totalConsOld / AGENTS_COUNT,
           housePrice: P_t,
+          housePriceNext: P_next,
           population: N_t,
           housingStock: H_t,
-          incomeMean: incomeSum / AGENTS_COUNT
       });
   }
   

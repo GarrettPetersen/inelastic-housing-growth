@@ -4,12 +4,12 @@ import type { ModelParams, GenerationResult } from './model';
 import { Users, Home, TrendingUp, Activity, DollarSign, RotateCcw, Info } from 'lucide-react';
 
 const DEFAULT_PARAMS: ModelParams = {
-  popGrowthRate: 0.20, // ~20% per generation (~0.6% per year over 30 years)
+  popGrowthRate: 0.25, // ~25% per generation
   techGrowthRate: 0.50, // ~50% per generation (~1.3% per year)
   housingGrowthRate: 0.05, // ~5% per generation (supply constraints)
   inequality: 0.4, // Log-income SD
-  beta: 0.5, // Discount factor per generation (0.98^30 ≈ 0.5)
-  initialTech: 10,
+  beta: 0.3, // Discount factor per generation (less speculative)
+  initialTech: 2500000, // ~$2.5M lifetime -> ~$50k/yr
   initialPop: 1000,
   initialHousing: 1000
 };
@@ -62,6 +62,14 @@ const Slider = ({
 );
 
 const ResultCard = ({ result }: { result: GenerationResult }) => {
+  const fmtUSD = (v: number) => {
+    if (v >= 1000000) return `$${(v / 1000000).toFixed(2)}M`;
+    if (v >= 1000) return `$${(v / 1000).toFixed(0)}k`;
+    return `$${v.toFixed(0)}`;
+  };
+
+  const fmtAnn = (v: number) => fmtUSD(v / 50); // Annualized (approx 50 working years)
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex-1 min-w-[300px]">
       <div className="flex items-center justify-between mb-4">
@@ -70,74 +78,90 @@ const ResultCard = ({ result }: { result: GenerationResult }) => {
       </div>
       
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Home className="w-5 h-5 text-blue-600" />
-            <span className="text-sm font-medium text-gray-700">Ownership</span>
-          </div>
-          <span className="text-lg font-bold text-blue-700">{(result.ownershipRate * 100).toFixed(1)}%</span>
-        </div>
-
-        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
-            <span className="text-sm font-medium text-gray-700">Price/Income</span>
-          </div>
-          <span className="text-lg font-bold text-green-700">{result.priceToIncome.toFixed(2)}x</span>
-        </div>
-
+        {/* Housing Market Stats */}
         <div className="grid grid-cols-2 gap-2">
-           <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="text-xs text-gray-500 mb-1">Cons. Young</div>
-              <div className="font-semibold">{result.avgConsumptionYoung.toFixed(1)}</div>
+           <div className="flex flex-col p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                 <Home className="w-3 h-3" /> Ownership
+              </div>
+              <span className="text-lg font-bold text-blue-700">{(result.ownershipRate * 100).toFixed(1)}%</span>
            </div>
-           <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="text-xs text-gray-500 mb-1">Cons. Old</div>
-              <div className="font-semibold">{result.avgConsumptionOld.toFixed(1)}</div>
+           <div className="flex flex-col p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                 <DollarSign className="w-3 h-3" /> Price/Inc
+              </div>
+              <span className="text-lg font-bold text-green-700">{result.priceToIncome.toFixed(1)}x</span>
            </div>
         </div>
 
-        <div className="p-3 bg-purple-50 rounded-lg col-span-2">
+        {/* Financials Table */}
+        <div className="bg-gray-50 rounded-lg p-3">
+           <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Financials</h4>
+           <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                 <span className="text-gray-600">Buy Price (Young):</span>
+                 <span className="font-medium text-red-600">-{fmtUSD(result.housePrice)}</span>
+              </div>
+              <div className="flex justify-between">
+                 <span className="text-gray-600">Sell Price (Old):</span>
+                 <span className="font-medium text-green-600">+{fmtUSD(result.housePriceNext)}</span>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
+                 <span className="text-gray-600">Capital Gain:</span>
+                 <span className="font-medium text-blue-600">
+                    {((result.housePriceNext / result.housePrice - 1) * 100).toFixed(0)}%
+                 </span>
+              </div>
+              <div className="flex justify-between pt-2">
+                 <span className="text-gray-600">Avg Annual Inc:</span>
+                 <span className="font-medium">{fmtAnn(result.incomeMean)}</span>
+              </div>
+           </div>
+        </div>
+
+        {/* Income Distribution */}
+        <div className="bg-gray-50 rounded-lg p-3">
+           <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Annual Income Dist.</h4>
+           <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                 <span className="text-gray-600">25th Percentile:</span>
+                 <span className="font-medium text-gray-700">{fmtAnn(result.incomeP25)}</span>
+              </div>
+              <div className="flex justify-between">
+                 <span className="text-gray-600">Median:</span>
+                 <span className="font-medium text-gray-700">{fmtAnn(result.incomeMedian)}</span>
+              </div>
+              <div className="flex justify-between">
+                 <span className="text-gray-600">75th Percentile:</span>
+                 <span className="font-medium text-gray-700">{fmtAnn(result.incomeP75)}</span>
+              </div>
+           </div>
+        </div>
+
+        {/* Utility Stats */}
+        <div className="p-3 bg-purple-50 rounded-lg">
            <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-purple-900">Lifetime Utility</span>
+            <span className="text-sm font-medium text-purple-900">Utility (Happiness)</span>
            </div>
-           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
              <div className="flex justify-between">
-                <span className="text-gray-500">Average:</span>
-                <span className="font-semibold text-purple-700">{result.avgLifetimeUtility.toFixed(2)}</span>
-             </div>
-             <div className="flex justify-between">
-                <span className="text-gray-500">Owners:</span>
-                <span className="font-semibold text-purple-700">
-                  {isNaN(result.avgUtilityOwners) ? '-' : result.avgUtilityOwners.toFixed(2)}
-                </span>
-             </div>
-             <div className="flex justify-between">
-                <span className="text-gray-500">Renters:</span>
-                <span className="font-semibold text-purple-700">
-                  {isNaN(result.avgUtilityRenters) ? '-' : result.avgUtilityRenters.toFixed(2)}
-                </span>
-             </div>
-             <div className="flex justify-between border-t border-purple-100 pt-1 mt-1 col-span-2">
+                <span className="text-gray-500">Avg:</span>
+                <span className="font-semibold text-purple-700">{result.avgLifetimeUtility.toFixed(1)}</span>
              </div>
              <div className="flex justify-between">
                 <span className="text-gray-500">25th %:</span>
-                <span className="font-semibold text-gray-700">{result.utilityP25.toFixed(2)}</span>
+                <span className="font-semibold text-gray-700">{result.utilityP25.toFixed(1)}</span>
              </div>
              <div className="flex justify-between">
                 <span className="text-gray-500">Median:</span>
-                <span className="font-semibold text-gray-700">{result.utilityMedian.toFixed(2)}</span>
+                <span className="font-semibold text-gray-700">{result.utilityMedian.toFixed(1)}</span>
              </div>
              <div className="flex justify-between">
                 <span className="text-gray-500">75th %:</span>
-                <span className="font-semibold text-gray-700">{result.utilityP75.toFixed(2)}</span>
+                <span className="font-semibold text-gray-700">{result.utilityP75.toFixed(1)}</span>
              </div>
            </div>
-        </div>
-        
-        <div className="text-xs text-gray-400 text-center mt-2">
-           Avg Income: {result.incomeMean.toFixed(1)} | Price: {result.housePrice.toFixed(1)}
         </div>
       </div>
     </div>
@@ -146,6 +170,11 @@ const ResultCard = ({ result }: { result: GenerationResult }) => {
 
 function App() {
   const [params, setParams] = useState<ModelParams>(DEFAULT_PARAMS);
+
+  // Auto-fix state for hot-reloading dev cycles (migration)
+  if (params.initialTech < 1000) {
+     setParams(DEFAULT_PARAMS);
+  }
 
   const results = useMemo(() => simulate(params), [params]);
 
@@ -164,7 +193,7 @@ function App() {
       <header className="bg-white border-b border-gray-200 py-6 px-8 mb-8">
         <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
+              <img src="/house-dollar.svg" alt="Logo" className="w-10 h-10" />
               Inelastic Housing Growth Model
             </h1>
             <p className="mt-2 text-gray-600 max-w-3xl">
@@ -190,7 +219,7 @@ function App() {
                    title="Reset all parameters"
                  >
                    <RotateCcw className="w-3 h-3" /> Reset
-                 </button>
+        </button>
               </div>
               <Slider 
                 label="Pop. Growth Rate" 
@@ -240,8 +269,9 @@ function App() {
                 label="Initial Tech (A0)" 
                 value={params.initialTech} 
                 onChange={(v) => updateParam('initialTech', v)} 
-                min={1} max={50} step={1} 
-                tooltip="Starting productivity level (base wage) at t=0."
+                min={1000000} max={20000000} step={500000} 
+                format={(v) => `$${(v/1000000).toFixed(1)}M`}
+                tooltip="Starting productivity level (base lifetime income) at t=0."
               />
             </div>
 
@@ -301,8 +331,8 @@ function App() {
                         <span className="text-xs text-gray-500 mt-1 block">
                            Note: If Supply &gt; Population, everyone buys, and the price is set by the poorest person's WTP (clearing the market at the lowest valuation).
                         </span>
-                     </p>
-                  </div>
+        </p>
+      </div>
                   
                   <div>
                      <h4 className="font-semibold text-gray-800 mb-1">The Wealth Transfer Effect</h4>
